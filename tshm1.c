@@ -17,23 +17,30 @@ struct head {
     struct list	**tail;
 };
 
+void setup()
+{
+    struct head *h = shm_malloc(sizeof(struct head));
+    if (!h) {
+	perror("shm_malloc");
+	exit(1); }
+    h->head = 0;
+    h->tail = &h->head;
+    shm_set_global(h);
+}
+
 int main(int ac, char **av)
 {
     int	i;
     struct head *h;
     struct list *l;
 
-    if (shm_init(SHM_FILE) < 0) {
+    if (shm_init(SHM_FILE, setup) < 0) {
 	perror("shm_init");
 	exit(1); }
     h = shm_global();
     if (!h) {
-	if (!(h = shm_malloc(sizeof(struct head)))) {
-	    perror("shm_malloc");
-	    exit(1); }
-	h->head = 0;
-	h->tail = &h->head;
-	shm_set_global(h); }
+	perror("shm_global");
+	exit(1); }
     for (i = 1; i < ac; i++) {
 	if (!(l = shm_malloc(sizeof(struct list)))) {
 	    perror("shm_malloc");

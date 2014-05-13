@@ -630,7 +630,7 @@ int shm_destroy()
     return 0;
 }
 
-int shm_init(const char *mfile)
+int shm_init(const char *mfile, void (*init_fn)())
 {
 int			tmp, wait = 5;
 int			flags = MAP_SHARED|MAP_FIXED;
@@ -689,11 +689,13 @@ struct sigaction	segv;
 	munmap(membase, localbrk - (void *)membase);
 	close(mfd);
 	return -1; }
-    membase->init = 1;
+    if (!membase->init && init_fn)
+	init_fn();
     segv.sa_flags = 0;
     sigemptyset(&segv.sa_mask);
     segv.sa_handler = shm_segv;
     sigaction(SIGSEGV, &segv, &oldsegv);
+    membase->init = 1;
     return 0;
 }
 
@@ -1106,14 +1108,14 @@ void			*new;
 	    return 0; }
 	if ((U)new % PAGESIZE) {
 	    if (sbrk(PAGESIZE - (U)new % PAGESIZE) == (void *)-1) {
-		brk(new);
+		if (brk(new)) /* ignore return value */;
 		UNLOCK(NUMSMALL);
 		return 0; }
 	    new += PAGESIZE - (U)new % PAGESIZE; }
 	if (I1(PAGENUM(new)+size-1) != I1(PAGENUM(membase->end)-1)) {
 	    if (!expand_page_table(PAGENUM(new)+size-1)) {
 		if ((U)new > (U)membase->end) {
-		    brk(new);
+		    if (brk(new)) /* ignore return value */;
 		    UNLOCK(NUMSMALL);
 		    return 0; } }
 	} else

@@ -38,11 +38,16 @@ void *shm_realloc(void *, size_t);
 void shm_free(void *);
     These are used instead of the standard malloc routines.
 
-void shm_init(char *filename);
+void shm_init(char *filename [, void (*init)()]);
     This must be called in each process to get access to the shared memory.
     If the file doesn't (yet) exist, it will be created and initialized to
     `all free'.  It contains code to avoid race conditions, so you can call
     it in multiple processes simultaneously and the right thing will happen
+
+    The optional init function will be called if this is a newly created
+    file.  Only one process will call this function if multiple processes
+    call shm_init on a new file simultaneously; the others will wait for it
+    to finish.
 
 void shm_fini();
     This must be called in each process before exiting (unless shm_destroy
